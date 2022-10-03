@@ -13,44 +13,54 @@ solver() = Model(optimizer_with_attributes(
     HiGHS.Optimizer, "output_flag"=>false
 ))
 
-As = [[2 0; 0 0], [-1 0; 0 0]]
-
-comps = [[[-1, 0]], [[1, 1], [1, -1]]]
+As = Matrix{Int}[]
 
 lfs_x = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
 
+Θ = 5
 xmax = 1e3
-tol_dist = 4
+γmax = 100
 
-@testset "verify dist < tol_rate" begin
-    x, r, q, δ = CPC.verify(
-        As, lfs_x, lfs_y, comps, xmax, tol_dist, 2, 2, solver
+@testset "empty As" begin
+    x, γ = CPC.verify(
+        As, lfs_x, lfs_y, 0, 2, Θ, xmax, γmax, solver
     )
-    @test x ≈ [1, 0]
-    @test r ≈ 1
-    @test q == 1
-    @test δ ≈ sqrt(5)
+    @test γ ≈ γmax
 end
 
 As = [[2 0; 0 0], [-1 0; 0 0]]
 
-comps = [[[-1, 0], [-1, 0]], [[1, 0], [1, 0]]]
-
-lfs_x = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
+lfs_x = [[-1, 0]]
 lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
 
-xmax = 1e3
-tol_dist = 1.0
+Θ = 400
+xmax = 100
+γmax = 200
 
-@testset "verify dist > tol_rate" begin
-    x, r, q, δ = CPC.verify(
-        As, lfs_x, lfs_y, comps, xmax, tol_dist, 2, 2, solver
+@testset "xmax" begin
+    x, γ = CPC.verify(
+        As, lfs_x, lfs_y, 2, 2, Θ, xmax, γmax, solver
     )
-    @test x ≈ [1, 0]
-    @test r ≈ 0.5
-    @test q == 2
-    @test δ ≈ 2
+    @test x[1] ≈ 100
+    @test γ ≈ 50
+end
+
+As = [[2 0; 0 0], [-1 0; 0 0]]
+
+lfs_x = [[-1, 0]]
+lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
+
+Θ = 10
+xmax = 100
+γmax = 200
+
+@testset "Θ" begin
+    x, γ = CPC.verify(
+        As, lfs_x, lfs_y, 2, 2, Θ, xmax, γmax, solver
+    )
+    @test x[1] ≈ 2*10/3
+    @test γ ≈ 10/3
 end
 
 As = [[2 0; 0 0], [-1 0; 0 0]]
@@ -58,14 +68,33 @@ As = [[2 0; 0 0], [-1 0; 0 0]]
 lfs_x = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
 
-xmax = 1e3
+Θ = 400
+xmax = 100
+γmax = 200
 
-@testset "verify no comps" begin
-    x, r, q, δ = CPC.verify(As, lfs_x, lfs_y, xmax, 2, 2, solver)
+@testset "full #1" begin
+    x, γ = CPC.verify(
+        As, lfs_x, lfs_y, 2, 2, Θ, xmax, γmax, solver
+    )
     @test x ≈ [1, 0]
-    @test r ≈ 0.5
-    @test q == 2
-    @test isinf(δ)
+    @test γ ≈ 0.5
+end
+
+As = [[2 0; 0 0], [-1 0; 0 0], [0 5; 0 0]]
+
+lfs_x = [[1, 1], [1, -1], [-10, 10], [-10, -10], [0, 10]]
+lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
+
+Θ = 400
+xmax = 100
+γmax = 200
+
+@testset "full #2" begin
+    x, γ = CPC.verify(
+        As, lfs_x, lfs_y, 3, 2, Θ, xmax, γmax, solver
+    )
+    @test x ≈ [5/6, -1/6]
+    @test γ ≈ 0.5*5/6
 end
 
 nothing

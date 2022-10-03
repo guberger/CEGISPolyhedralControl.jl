@@ -48,14 +48,5 @@ function compute_lfs(
     @assert termination_status(model) == OPTIMAL
     @assert primal_status(model) == FEASIBLE_POINT
 
-    bins_list_opt = _get_binary_values.(bins_list)
-    @assert all(bins -> sum(bins) == 1, bins_list_opt)
-    q_list = zeros(Int, NW)
-    for (i, bins) in enumerate(bins_list_opt)
-        q_list[i] = findfirst(bin -> bin == 1, bins)
-    end
-
-    return map(lf -> map(value, lf), lfs),
-        q_list,
-        objective_value(model)
+    return map(lf -> map(value, lf), lfs), objective_value(model)
 end

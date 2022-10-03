@@ -67,34 +67,50 @@ h2.set_linestyle("none")
 h2.set_color("green")
 h2.set_marker(".")
 h2.set_markersize(5)
-hs = (h1, h2)
+h_list = (h1, h2)
 plfs = matplotlib.collections.PolyCollection((zeros(0, 2),))
 plfs.set_facecolor("none")
 plfs.set_edgecolor("red")
 plfs.set_linewidth(1.0)
 ax.add_collection(plfs)
 
-function callback_fcn(::Val{1}, lfs, lfs_init, q_list, wits)
-    NW = length(wits)
-    for (q, h) in enumerate(hs)
-        xs = [wits[i].x for i in 1:NW if q_list[i] == q]
-        h.set_xdata(getindex.(xs, 1))
-        h.set_ydata(getindex.(xs, 2))
-    end
-    the_lfs = copy(lfs)
+xs = Vector{Float64}[]
+xs_mode_list = (Vector{Float64}[], Vector{Float64}[])
+the_lfs = Vector{Float64}[]
+vals = [Inf, Inf]
+
+function callback_fcn(::Val{1}, lfs)
+    copyto!(the_lfs, lfs)
     append!(the_lfs, lfs_init)
     verts = compute_vertices_hrep(lfs, 1, lims, 2)
     plfs.set_verts((verts,))
+    sleep(0.2)
     nothing
 end
 
-callback_fcn(::Val{2}, x, q, comps) = nothing
+function callback_fcn(::Val{2}, x)
+    push!(xs, x/norm(x))
+    empty!.(xs_mode_list)
+    for x in xs
+        vals .= Inf
+        for (q, A) in enumerate(As)
+            vals[q] = maximum(lf -> dot(lf, A*x), the_lfs)
+        end
+        push!(xs_mode_list[argmin(vals)], x)
+    end
+    for (q, h) in enumerate(h_list)
+        h.set_xdata(getindex.(xs_mode_list[q], 1))
+        h.set_ydata(getindex.(xs_mode_list[q], 2))
+    end
+    sleep(0.2)
+    nothing
+end
 
-γmax = 0.99
+xmax = 15
 iter_max = 100
 
-status, lfs, comps = CPC.learn_controller(
-    As, lfs_init, γmax, 2, 2, iter_max, solver, callback_fcn=callback_fcn
+status, lfs = CPC.learn_controller(
+    As, lfs_init, 2, 2, xmax, iter_max, solver, callback_fcn=callback_fcn
 )
 
 end # module

@@ -20,12 +20,10 @@ lfs_init = Vector{Int}[]
 rmax = 100
 
 @testset "compute lfs empty" begin
-    lfs, q_list, r = CPC.compute_lfs(
+    lfs, r = CPC.compute_lfs(
         wits, nAs, lfs_init, 2, 1, Θ, rmax, solver
     )
     @test isempty(lfs)
-    @test isempty(q_list)
-    @test eltype(q_list) == Int
     @test r ≈ rmax
 end
 
@@ -36,12 +34,11 @@ lfs_init = Vector{Int}[]
 rmax = 100
 
 @testset "compute pf loop" begin
-    lfs, q_list, r = CPC.compute_lfs(
+    lfs, r = CPC.compute_lfs(
         wits, nAs, lfs_init, 2, 1, Θ, rmax, solver
     )
     @test length(lfs) == 1
     @test lfs[1] ≈ [1]
-    @test q_list == [1]
     @test r ≈ 0.5/9
 end
 
@@ -52,12 +49,11 @@ lfs_init = Vector{Int}[]
 rmax = 100
 
 @testset "compute pf no loop" begin
-    lfs, q_list, r = CPC.compute_lfs(
+    lfs, r = CPC.compute_lfs(
         wits, nAs, lfs_init, 2, 1, Θ, rmax, solver
     )
     @test length(lfs) == 1
     @test lfs[1] ≈ [1]
-    @test q_list == [2]
     @test r ≈ 2/12
 end
 
@@ -68,12 +64,11 @@ lfs_init = [[-0.25], [0.25]]
 rmax = 100
 
 @testset "compute pf init active" begin
-    lfs, q_list, r = CPC.compute_lfs(
+    lfs, r = CPC.compute_lfs(
         wits, nAs, lfs_init, 2, 1, Θ, rmax, solver
     )
     @test length(lfs) == 1
     @test lfs[1] ≈ [1]
-    @test q_list == [1]
     @test r ≈ (1 - 0.25*0.5)/9
 end
 
@@ -87,13 +82,12 @@ lfs_init = [[-0.1], [0.1]]
 rmax = 100
 
 @testset "compute pf loop" begin
-    lfs, q_list, r = CPC.compute_lfs(
+    lfs, r = CPC.compute_lfs(
         wits, nAs, lfs_init, 2, 1, Θ, rmax, solver
     )
     @test length(lfs) == 2
     @test lfs[1] ≈ [1]
     @test lfs[2] ≈ [-0.1]
-    @test q_list[2] == 1
     @test r ≈ -0.1/9
 end
 
@@ -107,13 +101,12 @@ lfs_init = [[-0.1], [0.1]]
 rmax = 100
 
 @testset "compute pf cycle" begin
-    lfs, q_list, r = CPC.compute_lfs(
+    lfs, r = CPC.compute_lfs(
         wits, nAs, lfs_init, 2, 1, Θ, rmax, solver
     )
     @test length(lfs) == 2
     @test lfs[1] ≈ [1]
     @test lfs[2] ≈ [-0.75]
-    @test q_list == [2, 1]
     @test r ≈ 0.25/9
 end
 

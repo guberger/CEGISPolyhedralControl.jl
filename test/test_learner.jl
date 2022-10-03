@@ -22,22 +22,22 @@ As = [
 
 lfs_init = [[0.1, 0.0], [-0.1, 0.0], [0.0, 0.1], [0.0, -0.1]]
 
-γmax = 0.99
+xmax = 15
 iter_max = 10
 
-status, lfs, comps = CPC.learn_controller(
-    As, lfs_init, γmax, 2, 2, iter_max, solver
+status, lfs = CPC.learn_controller(
+    As, lfs_init, 2, 2, xmax, iter_max, solver
 )
 
 @testset "iter max" begin
     @test status == CPC.MAX_ITER_REACHED
 end
 
-γmax = 0.99
+xmax = 15
 iter_max = 100
 
-status, lfs, comps = CPC.learn_controller(
-    As, lfs_init, γmax, 2, 2, iter_max, solver
+status, lfs = CPC.learn_controller(
+    As, lfs_init, 2, 2, xmax, iter_max, solver
 )
 
 @testset "found" begin
@@ -50,11 +50,11 @@ As = [
     [α*cos(θ) -α*sin(θ); α*sin(θ) α*cos(θ)],
 ]
 
-γmax = 0.99
+xmax = 15
 iter_max = 100
 
-status, lfs, comps = CPC.learn_controller(
-    As, lfs_init, γmax, 1, 2, iter_max, solver
+status, lfs = CPC.learn_controller(
+    As, lfs_init, 1, 2, xmax, iter_max, solver
 )
 
 @testset "infeasible" begin

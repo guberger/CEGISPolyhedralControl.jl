@@ -10,17 +10,18 @@ const WT_ = Witness{VT_,Float64,Vector{VT_}}
 function learn_controller(
         As::Vector{<:AbstractMatrix},
         lfs_init::Vector{<:AbstractVector},
-        γmax, M, N, iter_max, solver;
-        xmax=1e3, tol_r=1e-5, tol_dist=1e-5, do_print=true,
-        callback_fcn=(args...) -> nothing
+        M, N, xmax, iter_max, solver;
+        tol_r=1e-5, tol_γ=1.0 - 1e-5,
+        do_print=true, callback_fcn=(args...) -> nothing
     )
     lfs_init_f = map(lf -> map(float, lf), lfs_init)
     wits = WT_[]
     As_f = map(float, As)
     nAs = map(A -> opnorm(A, 1), As_f)
-    comps = [VT_[] for q in 1:M]
-    Θ = 4
+    Θgen = 4
     rmax = 2
+    γmax = 2
+    Θverif = γmax + N*xmax*maximum(nAs)
     iter = 0
     
     while true
@@ -31,38 +32,30 @@ function learn_controller(
             break
         end
 
-        lfs, q_list, r = compute_lfs(
-            wits, nAs, lfs_init_f, M, N, Θ, rmax, solver
+        lfs::Vector{VT_}, r::Float64 = compute_lfs(
+            wits, nAs, lfs_init_f, M, N, Θgen, rmax, solver
         )
 
         do_print && println("|-- r generator: ", r)
-        callback_fcn(Val(1), lfs, lfs_init_f, q_list, wits)
+        callback_fcn(Val(1), lfs)
 
         if r < tol_r
             println("Controller infeasible")
-            return CONTROLLER_INFEASIBLE, copy(lfs_init_f), comps
+            return CONTROLLER_INFEASIBLE, lfs_init_f
         end
 
         append!(lfs, lfs_init_f)
-        
-        empty!.(comps)
-        for (wit, q) in zip(wits, q_list)
-            push!(comps[q], wit.x)
-        end
 
-        x::VT_, γ::Float64, q::Int, δ::Float64 =
-            isempty(wits) ? verify(
-                As_f, lfs, lfs, xmax, M, N, solver
-            ) : verify(
-                As_f, lfs, lfs, comps, xmax, tol_dist, M, N, solver
-            )
+        x::VT_, γ::Float64 = verify(
+            As_f, lfs, lfs, M, N, Θverif, xmax, γmax, solver
+        )
 
-        do_print && println("|-- CE: ", x, ", ", γ, ", ", q, ", dist:", δ)
-        callback_fcn(Val(2), x, q, comps)
+        do_print && println("|-- CE: ", x, ", ", γ)
+        callback_fcn(Val(2), x)
 
-        if γ ≤ γmax
+        if γ ≤ tol_γ
             println("Valid controller: terminated")
-            return CONTROLLER_FOUND, lfs, comps
+            return CONTROLLER_FOUND, lfs
         end
 
         normalize!(x, 2)
@@ -70,5 +63,5 @@ function learn_controller(
         ys = [As_f[q]*x for q in 1:M]
         push!(wits, Witness(x, np, ys))
     end
-    return MAX_ITER_REACHED, copy(lfs_init_f), comps
+    return MAX_ITER_REACHED, lfs_init_f
 end
