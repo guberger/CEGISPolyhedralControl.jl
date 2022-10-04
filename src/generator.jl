@@ -6,8 +6,6 @@ struct Witness{
     ys::VIT
 end
 
-_get_binary_values(bins) = map(bin -> round(Int, value(bin)), bins)
-
 function compute_lfs(
         wits::Vector{<:Witness},
         nAs::Vector{<:Real},

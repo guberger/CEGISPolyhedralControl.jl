@@ -10,6 +10,7 @@
 [codecov-img]: http://codecov.io/github/guberger/CEGISPolyhedralControl.jl/coverage.svg?branch=main
 [codecov-url]: http://codecov.io/github/guberger/CEGISPolyhedralControl.jl?branch=main
 
-![GUI](https://github.com/guberger/CEGISPolyhedralControl.jl/blob/main/animation_rotating.gif)
+![GUI](https://github.com/guberger/CEGISPolyhedralControl.jl/blob/main/animation_illustrative.gif)
+![GUI](https://github.com/guberger/CEGISPolyhedralControl.jl/blob/main/exa_illustrative_trajectory.png)
 
 ## References

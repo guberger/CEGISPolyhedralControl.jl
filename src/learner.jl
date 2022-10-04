@@ -37,7 +37,6 @@ function learn_controller(
         )
 
         do_print && println("|-- r generator: ", r)
-        callback_fcn(Val(1), lfs)
 
         if r < tol_r
             println("Controller infeasible")
@@ -51,7 +50,8 @@ function learn_controller(
         )
 
         do_print && println("|-- CE: ", x, ", ", γ)
-        callback_fcn(Val(2), x)
+
+        callback_fcn(iter, lfs, x)
 
         if γ ≤ tol_γ
             println("Valid controller: terminated")
