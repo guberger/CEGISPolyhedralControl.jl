@@ -5,15 +5,32 @@
 end
 
 const VT_ = Vector{Float64}
-const WT_ = Witness{VT_,Float64,Vector{VT_}}
+const IT_ = Image{Float64,VT_}
+const WT_ = Witness{VT_,Vector{Vector{IT_}}}
 
 function learn_controller(
-        As::Vector{<:AbstractMatrix},
+        pieces::Vector{<:Piece},
         lfs_init::Vector{<:AbstractVector},
-        M, N, xmax, iter_max, solver;
-        tol_r=1e-5, tol_γ=1.0 - 1e-5,
+        τ, M, N, xmax, iter_max, solver;
+        tol_r=1e-5, tol_γ=-1e-5,
         do_print=true, callback_fcn=(args...) -> nothing
     )
+    lfs_init_f = map(lf -> Float64.(lf), lfs_init)
+    wit_cls = Vector{WT_}[]
+    pieces_f = map(
+        piece -> Piece(
+            Float64.(piece.A),
+            map(lf -> Float64.(lf), piece.lfs_dom)
+        ), pieces
+    )
+    Ms = map(piece -> Float64.(I + τ*piece.A), pieces_f)
+    nMs = map(M -> opnorm(M, 1), Ms)
+    rmax = 2
+    Θgen = 4
+    γmax = 2
+    Θverif = γmax + N*xmax*maximum(nAs)
+    iter = 0
+
     lfs_init_f = map(lf -> map(float, lf), lfs_init)
     wits = WT_[]
     As_f = map(float, As)

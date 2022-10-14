@@ -13,88 +13,121 @@ solver() = Model(optimizer_with_attributes(
     HiGHS.Optimizer, "output_flag"=>false
 ))
 
-As = Matrix{Int}[]
-
-lfs_x = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
-lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
+flows = CPC.Flow{Matrix{Int},Vector{Int}}[]
+rect = CPC.Rectangle([1, 1], [2, 2])
+lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 
 Θ = 5
-xmax = 1e3
 γmax = 100
 
-@testset "empty As" begin
-    x, γ = CPC.verify(
-        As, lfs_x, lfs_y, 0, 2, Θ, xmax, γmax, solver
-    )
+@testset "piece: empty flows" begin
+    x, γ = CPC.verify_piece(flows, rect, lfs, 0, 2, Θ, γmax, solver)
     @test γ ≈ γmax
 end
 
-As = [[2 0; 0 0], [-1 0; 0 0]]
-
-lfs_x = [[-1, 0]]
-lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
-
-Θ = 400
-xmax = 100
-γmax = 200
-
-@testset "xmax" begin
-    x, γ = CPC.verify(
-        As, lfs_x, lfs_y, 2, 2, Θ, xmax, γmax, solver
-    )
-    @test x[1] ≈ 100
-    @test γ ≈ 50
-end
-
-As = [[2 0; 0 0], [-1 0; 0 0]]
-
-lfs_x = [[-1, 0]]
-lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
-
-Θ = 10
-xmax = 100
-γmax = 200
-
-@testset "Θ" begin
-    x, γ = CPC.verify(
-        As, lfs_x, lfs_y, 2, 2, Θ, xmax, γmax, solver
-    )
-    @test x[1] ≈ 2*10/3
-    @test γ ≈ 10/3
-end
-
-As = [[2 0; 0 0], [-1 0; 0 0]]
-
-lfs_x = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
-lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
+flows = [
+    CPC.Flow([0 -1; 0 0], [2, 0]),
+    CPC.Flow([0 1; 0 0], [-1, 0])
+]
+rect = CPC.Rectangle([1, 1], [2, 2])
+lfs = [[1, 1]]
 
 Θ = 400
-xmax = 100
-γmax = 200
+γmax = 100
 
-@testset "full #1" begin
-    x, γ = CPC.verify(
-        As, lfs_x, lfs_y, 2, 2, Θ, xmax, γmax, solver
-    )
-    @test x ≈ [1, 0]
-    @test γ ≈ 0.5
+@testset "piece: single lfs" begin
+    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, γmax, solver)
+    @test x ≈ [0.4, 0.6]
+    @test γ ≈ 0.2
 end
 
-As = [[2 0; 0 0], [-1 0; 0 0], [0 5; 0 0]]
-
-lfs_x = [[1, 1], [1, -1], [-10, 10], [-10, -10], [0, 10]]
-lfs_y = [[0.5, 0.0], [-0.5, 0.0]]
+flows = [
+    CPC.Flow([0 -1; 0 0], [1, 0]),
+    CPC.Flow([0 1; 0 0], [-1, 0])
+]
+rect = CPC.Rectangle([1, 1], [2, 2])
+lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 
 Θ = 400
-xmax = 100
-γmax = 200
+γmax = 100
 
-@testset "full #2" begin
-    x, γ = CPC.verify(
-        As, lfs_x, lfs_y, 3, 2, Θ, xmax, γmax, solver
-    )
-    @test x ≈ [5/6, -1/6]
-    @test γ ≈ 0.5*5/6
+@testset "piece: multi lfs" begin
+    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, γmax, solver)
+    @test x ≈ [18/40, 22/40]
+    @test γ ≈ 11/40
+end
+
+flows = [
+    CPC.Flow([0 -1; -1 0], [1, 0]),
+    CPC.Flow([0 1; 0 0], [-1, 0])
+]
+rect = CPC.Rectangle([1, 1], [2, 2])
+lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
+
+Θ = 400
+γmax = 100
+
+@testset "piece: multi lfs neg" begin
+    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, γmax, solver)
+    @test x ≈ [1/2, 1/2]
+    @test γ ≈ -1/2
+end
+
+FT = CPC.Flow{Matrix{Int},Vector{Int}}
+pieces = CPC.Piece{Vector{FT},CPC.Rectangle{Vector{Int}}}[]
+lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
+
+Θ = 400
+γmax = 100
+
+@testset "all: empty pieces" begin
+    x, γ = CPC.verify(pieces, lfs, 2, 2, Θ, γmax, solver)
+    @test all(isnan, x)
+    @test γ ≈ -Inf
+end
+
+pieces = [
+    CPC.Piece([
+        CPC.Flow([0 -1; -1 0], [1, 0]),
+        CPC.Flow([0 1; 0 0], [-1, 0])
+    ], CPC.Rectangle([1, 1], [2, 2])),
+    CPC.Piece([
+        CPC.Flow([0 0.5; 0.5 0], [0.5, 0]),
+        CPC.Flow([0 -0.5; 0 0], [-0.5, 0])
+    ], CPC.Rectangle([1, -2], [2, -1]))
+]
+lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
+
+Θ = 400
+γmax = 100
+
+@testset "all: neg" begin
+    x, γ, k = CPC.verify(pieces, lfs, 2, 2, Θ, γmax, solver)
+    display(k)
+    @test x ≈ [1/2, -1/2]
+    @test γ ≈ -1/4
+end
+
+pieces = [
+    CPC.Piece([
+        CPC.Flow([0 -1; 0 0], [1, 0]),
+        CPC.Flow([0 1; 0 0], [-1, 0])
+    ], CPC.Rectangle([1, 1], [2, 2])),
+    CPC.Piece([
+        CPC.Flow([0 2; 0 0], [2, 0]),
+        CPC.Flow([0 -2; 0 0], [-2, 0])
+    ], CPC.Rectangle([1, -2], [2, -1]))
+]
+lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
+
+Θ = 400
+γmax = 100
+
+@testset "all: pos" begin
+    x, γ, k = CPC.verify(pieces, lfs, 2, 2, Θ, γmax, solver)
+    display(k)
+    @test x ≈ [18/40, -22/40]
+    @test γ ≈ 22/40
 end
 
 nothing
