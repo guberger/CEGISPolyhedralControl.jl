@@ -11,7 +11,7 @@ const WT_ = Witness{VT_,Vector{Vector{IT_}}}
 function learn_controller(
         pieces::Vector{<:Piece},
         lfs_init::Vector{<:AbstractVector},
-        τ, M, N, xmax, iter_max, solver;
+        τ, M, N, xmax, γmax, iter_max, solver;
         tol_r=1e-5, tol_γ=-1e-5,
         do_print=true, callback_fcn=(args...) -> nothing
     )
@@ -19,38 +19,36 @@ function learn_controller(
     wit_cls = Vector{WT_}[]
     pieces_f = map(
         piece -> Piece(
-            Float64.(piece.A),
-            map(lf -> Float64.(lf), piece.lfs_dom)
+            map(flow -> Flow(Float64.(flow.A), Float64.(flow.b)), piece.flows),
+            Rectangle(Float64.(piece.rect.lb), Float64.(piece.rect.ub))
         ), pieces
     )
-    Ms = map(piece -> Float64.(I + τ*piece.A), pieces_f)
-    nMs = map(M -> opnorm(M, 1), Ms)
+    Dpieces = map(
+        piece -> Piece(map(flow -> Flow(
+            Float64.(I + τ*flow.A),
+            Float64.(τ*flow.b)
+        ), piece.flows), piece.rect), pieces_f
+    )
+    nDpieces = map(
+        piece -> map(flow -> opnorm(flow.A, 1), piece.flows), Dpieces
+    )
     rmax = 2
-    Θgen = 4
+    Θg = 4
     γmax = 2
-    Θverif = γmax + N*xmax*maximum(nAs)
+    Θv = N*xmax
+    Θd = 2*γmax
     iter = 0
 
-    lfs_init_f = map(lf -> map(float, lf), lfs_init)
-    wits = WT_[]
-    As_f = map(float, As)
-    nAs = map(A -> opnorm(A, 1), As_f)
-    Θgen = 4
-    rmax = 2
-    γmax = 2
-    Θverif = γmax + N*xmax*maximum(nAs)
-    iter = 0
-    
     while true
         iter += 1
-        do_print && println("Iter: ", iter, " - nwit: ", length(wits))
+        do_print && println("Iter: ", iter, " - ncl: ", length(wit_cls))
         if iter > iter_max
             println("Max iter exceeded: ", iter)
             break
         end
 
         lfs::Vector{VT_}, r::Float64 = compute_lfs(
-            wits, nAs, lfs_init_f, M, N, Θgen, rmax, solver
+            wit_cls, lfs_init_f, M, N, Θg, rmax, solver
         )
 
         do_print && println("|-- r generator: ", r)
@@ -62,23 +60,33 @@ function learn_controller(
 
         append!(lfs, lfs_init_f)
 
-        x::VT_, γ::Float64 = verify(
-            As_f, lfs, lfs, M, N, Θverif, xmax, γmax, solver
+        x::VT_, γ::Float64, kopt::Int = verify(
+            pieces_f, lfs, M, N, Θv, Θd, γmax, solver
         )
+
+        @assert norm(x, Inf) ≤ xmax
 
         do_print && println("|-- CE: ", x, ", ", γ)
 
-        callback_fcn(iter, lfs, x)
+        callback_fcn(iter, wit_cls, lfs, x, kopt)
 
         if γ ≤ tol_γ
             println("Valid controller: terminated")
             return CONTROLLER_FOUND, lfs
         end
 
-        normalize!(x, 2)
-        np = norm(x, 1)
-        ys = [As_f[q]*x for q in 1:M]
-        push!(wits, Witness(x, np, ys))
+        nx = norm(x, 1)
+        wit_cl = WT_[]
+        img_cls = [IT_[] for q in 1:M]
+        for (k, piece) in enumerate(Dpieces)
+            (k == kopt) || x ∈ piece.rect || continue
+            for q in 1:M
+                flow = piece.flows[q]
+                α = nx*(1 + nDpieces[k][q])
+                push!(img_cls[q], Image(α, flow.A*x + flow.b))
+            end
+        end
+        push!(wit_cls, [Witness(x, img_cls)])
     end
     return MAX_ITER_REACHED, lfs_init_f
 end

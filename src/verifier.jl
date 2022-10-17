@@ -1,4 +1,4 @@
-function verify_piece(flows, rect, lfs, M, N, Θ, γmax, solver)
+function verify_piece(flows, rect, lfs, M, N, Θv, Θd, γmax, solver)
     model = solver()
     x = @variable(model, [1:N])
     bins_list = [
@@ -20,8 +20,8 @@ function verify_piece(flows, rect, lfs, M, N, Θ, γmax, solver)
         bins = bins_list[q]
         @constraint(model, sum(bins) == 1)
         for (i, lf) in enumerate(lfs)
-            @constraint(model, γ ≤ dot(lf, dx) + Θ*(1 - bins[i]))
-            @constraint(model, dot(lf, x) ≥ 1 - Θ*(1 - bins[i]))
+            @constraint(model, γ ≤ dot(lf, dx) + Θd*(1 - bins[i]))
+            @constraint(model, dot(lf, x) ≥ 1 - Θv*(1 - bins[i]))
         end
     end
 
@@ -40,14 +40,14 @@ end
 function verify(
         pieces::Vector{<:Piece},
         lfs::Vector{<:AbstractVector},
-        M, N, Θ, γmax, solver
+        M, N, Θv, Θd, γmax, solver
     )
     xopt::Vector{Float64} = fill(NaN, N)
     γopt::Float64 = -Inf
     kopt::Int = 0
     for (k, piece) in enumerate(pieces)
         x, γ = verify_piece(
-            piece.flows, piece.rect, lfs, M, N, Θ, γmax, solver
+            piece.flows, piece.rect, lfs, M, N, Θv, Θd, γmax, solver
         )
         if γ > γopt
             xopt = x

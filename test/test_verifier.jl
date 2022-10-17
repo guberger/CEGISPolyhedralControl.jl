@@ -21,7 +21,7 @@ lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 γmax = 100
 
 @testset "piece: empty flows" begin
-    x, γ = CPC.verify_piece(flows, rect, lfs, 0, 2, Θ, γmax, solver)
+    x, γ = CPC.verify_piece(flows, rect, lfs, 0, 2, Θ, Θ, γmax, solver)
     @test γ ≈ γmax
 end
 
@@ -36,7 +36,7 @@ lfs = [[1, 1]]
 γmax = 100
 
 @testset "piece: single lfs" begin
-    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, γmax, solver)
+    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, Θ, γmax, solver)
     @test x ≈ [0.4, 0.6]
     @test γ ≈ 0.2
 end
@@ -52,7 +52,7 @@ lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 γmax = 100
 
 @testset "piece: multi lfs" begin
-    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, γmax, solver)
+    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, Θ, γmax, solver)
     @test x ≈ [18/40, 22/40]
     @test γ ≈ 11/40
 end
@@ -68,7 +68,7 @@ lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 γmax = 100
 
 @testset "piece: multi lfs neg" begin
-    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, γmax, solver)
+    x, γ = CPC.verify_piece(flows, rect, lfs, 2, 2, Θ, Θ, γmax, solver)
     @test x ≈ [1/2, 1/2]
     @test γ ≈ -1/2
 end
@@ -81,7 +81,7 @@ lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 γmax = 100
 
 @testset "all: empty pieces" begin
-    x, γ = CPC.verify(pieces, lfs, 2, 2, Θ, γmax, solver)
+    x, γ = CPC.verify(pieces, lfs, 2, 2, Θ, Θ, γmax, solver)
     @test all(isnan, x)
     @test γ ≈ -Inf
 end
@@ -102,10 +102,10 @@ lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 γmax = 100
 
 @testset "all: neg" begin
-    x, γ, k = CPC.verify(pieces, lfs, 2, 2, Θ, γmax, solver)
-    display(k)
+    x, γ, k = CPC.verify(pieces, lfs, 2, 2, Θ, Θ, γmax, solver)
     @test x ≈ [1/2, -1/2]
     @test γ ≈ -1/4
+    @test k == 2
 end
 
 pieces = [
@@ -124,10 +124,10 @@ lfs = [[1, 1], [1, -1], [-10, 10], [-10, -10]]
 γmax = 100
 
 @testset "all: pos" begin
-    x, γ, k = CPC.verify(pieces, lfs, 2, 2, Θ, γmax, solver)
-    display(k)
+    x, γ, k = CPC.verify(pieces, lfs, 2, 2, Θ, Θ, γmax, solver)
     @test x ≈ [18/40, -22/40]
     @test γ ≈ 22/40
+    @test k == 2
 end
 
 nothing
