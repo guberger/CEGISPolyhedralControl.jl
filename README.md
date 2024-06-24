@@ -1,5 +1,3 @@
-# CEGISPolyhedralControl.jl
-
 | **Build Status** |
 |:----------------:|
 | [![Build Status][build-img]][build-url] |
@@ -12,5 +10,3 @@
 
 ![GUI](https://github.com/guberger/CEGISPolyhedralControl.jl/blob/main/animation_illustrative.gif)
 ![GUI](https://github.com/guberger/CEGISPolyhedralControl.jl/blob/main/exa_illustrative_trajectory.png)
-
-## References
